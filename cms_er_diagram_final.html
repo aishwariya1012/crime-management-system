@@ -1,0 +1,141 @@
+
+<style>
+#erd svg { width:100%; height:auto; }
+</style>
+<div id="erd" style="padding:8px 0"></div>
+<script type="module">
+import mermaid from 'https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs';
+const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+await document.fonts.ready;
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  fontFamily: '"Anthropic Sans", sans-serif',
+  themeVariables: {
+    darkMode: dark,
+    fontSize: '13px',
+    fontFamily: '"Anthropic Sans", sans-serif',
+    lineColor: dark ? '#9c9a92' : '#73726c',
+    textColor: dark ? '#c2c0b6' : '#3d3d3a',
+    primaryColor: dark ? '#2a2830' : '#eeedfe',
+    primaryTextColor: dark ? '#c2c0b6' : '#26215c',
+    primaryBorderColor: dark ? '#534ab7' : '#534ab7',
+  },
+});
+
+const diagram = `erDiagram
+  USER {
+    int user_id PK
+    string full_name
+    string email
+    string password_hash
+    string address
+    date date_of_birth
+    int age
+    string aadhaar_number
+    string pan_number
+    string phone_number
+    string profile_picture
+    string role
+  }
+  OFFICER {
+    int officer_id PK
+    string full_name
+    string email
+    string password_hash
+    string badge_number
+    string phone_number
+    string profile_picture
+    int active_case_count
+    string role
+  }
+  STATION_HEAD {
+    int station_head_id PK
+    string full_name
+    string email
+    string password_hash
+    string phone_number
+    string profile_picture
+    string role
+  }
+  INCIDENT {
+    int incident_id PK
+    string unique_code
+    string incident_type
+    string status
+    datetime reported_at
+    datetime updated_at
+    text description
+    int reported_by_user_id FK
+    int assigned_officer_id FK
+    int verified_by_head_id FK
+  }
+  INCIDENT_DETAIL {
+    int detail_id PK
+    int incident_id FK
+    string property_description
+    float value_estimate
+    string location
+    string image_path
+  }
+  ASSIGNMENT {
+    int assignment_id PK
+    int incident_id FK
+    int officer_id FK
+    int assigned_by_head_id FK
+    datetime assigned_at
+  }
+  NOTIFICATION {
+    int notification_id PK
+    int actor_id
+    string actor_role
+    int incident_id FK
+    string type
+    string message
+    datetime sent_at
+    boolean email_sent
+  }
+  DOCUMENT {
+    int document_id PK
+    int incident_id FK
+    string file_path
+    datetime generated_at
+  }
+
+  USER ||--o{ INCIDENT : "reports"
+  OFFICER ||--o{ ASSIGNMENT : "receives"
+  INCIDENT ||--o| ASSIGNMENT : "has"
+  STATION_HEAD ||--o{ ASSIGNMENT : "creates"
+  INCIDENT ||--|| INCIDENT_DETAIL : "has details"
+  INCIDENT ||--o{ NOTIFICATION : "triggers"
+  INCIDENT ||--o{ DOCUMENT : "generates"
+  STATION_HEAD ||--o{ INCIDENT : "verifies"
+`;
+
+const { svg } = await mermaid.render('erd-svg', diagram);
+document.getElementById('erd').innerHTML = svg;
+
+document.querySelectorAll('#erd svg .node').forEach(node => {
+  const firstPath = node.querySelector('path[d]');
+  if (!firstPath) return;
+  const d = firstPath.getAttribute('d');
+  const nums = d.match(/-?[\d.]+/g)?.map(Number);
+  if (!nums || nums.length < 8) return;
+  const xs = [nums[0], nums[2], nums[4], nums[6]];
+  const ys = [nums[1], nums[3], nums[5], nums[7]];
+  const x = Math.min(...xs), y = Math.min(...ys);
+  const w = Math.max(...xs) - x, h = Math.max(...ys) - y;
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('x', x); rect.setAttribute('y', y);
+  rect.setAttribute('width', w); rect.setAttribute('height', h);
+  rect.setAttribute('rx', '8');
+  for (const a of ['fill', 'stroke', 'stroke-width', 'class', 'style']) {
+    if (firstPath.hasAttribute(a)) rect.setAttribute(a, firstPath.getAttribute(a));
+  }
+  firstPath.replaceWith(rect);
+});
+
+document.querySelectorAll('#erd svg .row-rect-odd path, #erd svg .row-rect-even path').forEach(p => {
+  p.setAttribute('stroke', 'none');
+});
+</script>
